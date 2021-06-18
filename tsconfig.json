@@ -1,0 +1,50 @@
+{
+    "compilerOptions": {
+		// Target latest version of ECMAScript.
+		"target": "es5",
+        "module": "commonjs",
+		// Search under node_modules for non-relative imports.
+		"moduleResolution": "node",
+        "outDir": "./dist",
+		// Enable strictest settings like strictNullChecks & noImplicitAny.
+		"strict": true,
+		// Import non-ES modules as default imports.
+		"esModuleInterop": true,
+        "inlineSourceMap": true,
+        "emitDecoratorMetadata": true,
+        "experimentalDecorators": true,
+        "resolveJsonModule": true,
+		// Process & infer types from .js files.
+		"allowJs": true,
+		// Don't emit; allow Babel to transform files.
+		//"noEmit": true,
+        // Ensure that .d.ts files are created by tsc, but not .js files
+        "declaration": true,
+        //"emitDeclarationOnly": true,
+        // Ensure that Babel can safely transpile files in the TypeScript project
+		// Disallow features that require cross-file information for emit.
+        "isolatedModules": true,
+        "typeRoots": [
+            "node_modules/@types",
+            "src/types/*.d.ts"
+        ],
+        "lib": [
+            "esnext"
+        ]
+    },
+    "paths": {
+        "app": [
+            "./src/*"
+        ]
+    },
+    "files": [
+        "src/app.ts"
+    ],
+    "include": ["src/**/*"],
+    "exclude": [
+        "node_modules",
+        "build/**/*",
+        "dist/**/*",
+        "test/**/*"
+    ]
+}

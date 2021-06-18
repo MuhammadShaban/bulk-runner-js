@@ -1,0 +1,74 @@
+{
+    "name": "bulk-runner",
+    "version": "1.0.0",
+    "description": "Bulk Runner",
+    "main": "app.js",
+    "license": "MIT",
+    "author": {
+        "name": "Muhammad Shaban",
+        "email": "muhammad.shaban.dev@gmail.com"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/MuhammadShaban/bulk-runner-js.git"
+    },
+    "scripts": {
+        "start": "NODE_ENV=production node ./build/app.js",
+        "build": "tsc",
+        "dev": "nodemon --watch 'src/**/*.ts' --delay 1500ms --signal SIGTERM --exec 'ts-node' --files src/app.ts",
+        "webpack": "node --max_old_space_size=4096 ./node_modules/webpack/bin/webpack.js",
+        "webpack:build": "NODE_ENV=production npm run webpack -- --config webpack.config.js",
+        "clean": "rimraf src/{logs,temp}",
+        "format": "prettier --write \"src/**/*.{js,json,css,scss,less,md,ts,html}\""
+    },
+    "dependencies": {
+        "axios": "^0.21.1",
+        "axios-observable": "^1.1.6",
+        "dotenv": "^10.0.0",
+        "event-stream": "^4.0.1",
+        "express": "^4.17.1",
+        "express-http-context": "^1.2.4",
+        "flat": "^5.0.2",
+        "mime-types": "^2.1.31",
+        "mkdirp": "^1.0.4",
+        "moment": "^2.29.1",
+        "multer": "^1.4.2",
+        "rxjs": "^6.6.7",
+        "uuid": "^8.3.2",
+        "winston": "^3.3.3"
+    },
+    "devDependencies": {
+        "@types/event-stream": "^3.3.34",
+        "@types/express": "^4.17.12",
+        "@types/flat": "^5.0.1",
+        "@types/mime-types": "^2.1.0",
+        "@types/mkdirp": "^1.0.1",
+        "@types/multer": "^1.4.6",
+        "@types/uuid": "^8.3.0",
+        "husky": "^6.0.0",
+        "json-loader": "^0.5.7",
+        "lint-staged": "^11.0.0",
+        "node-loader": "^2.0.0",
+        "nodemon": "^2.0.7",
+        "prettier": "^2.3.1",
+        "raw-loader": "^4.0.2",
+        "rimraf": "^3.0.2",
+        "ts-loader": "^9.2.3",
+        "ts-node": "^10.0.0",
+        "tslint": "^6.0.0",
+        "typescript": "^4.3.4",
+        "webpack": "^5.39.1",
+        "webpack-cli": "^4.7.2"
+    },
+    "husky": {
+        "hooks": {
+            "pre-commit": "lint-staged"
+        }
+    },
+    "lint-staged": {
+        "*.{js,json,css,scss,less,md,ts,html,component.html}": [
+            "prettier --write",
+            "git add"
+        ]
+    }
+}
