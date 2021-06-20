@@ -15,7 +15,9 @@ import { Monitor } from './monitor';
 import { queue } from './queue';
 
 export class Runner {
-    progressCancel$: Subject<any> = new Subject();
+    private readStream?: MapStream;
+    private csvWriter?: CsvWriter;
+    private progressCancel$: Subject<any> = new Subject();
 
     constructor(private data: IOptions, private requestId: string) { }
 
@@ -23,8 +25,8 @@ export class Runner {
         return new Promise((resolve, reject) => {
             queue.set(this.requestId, this.data);
 
-            const csvWriter = new CsvWriter(this.requestId, config.results, this.data.results_map as string);
-            csvWriter
+            this.csvWriter = new CsvWriter(this.requestId, config.results, this.data.results_map as string);
+            this.csvWriter
                 .on('info', message => logger.info(message))
                 .on('debug', message => logger.debug(message))
                 .on('success', message => logger.info(message))
@@ -40,17 +42,28 @@ export class Runner {
                         logger.debug(`[LINE_NUMBER:${order}] [RESPONSE_TIME: ${time}] Response: [STATUS_CODE: ${results.status}] [RESPONSE: ${JSON.stringify(results.data)}] - [REQUEST: ${JSON.stringify(request)}]`);
                     }
 
-                    csvWriter.append(order, data, _results, time, error);
+                    this.csvWriter?.append(order, data, _results, time, error);
                 })
                 .on('error', error => {
+                    runner.removeAllListeners();
                     logger.error(error);
+
+                    // TODO
+                    // Handel what we will do on error
+                    // For example save all data on a separate folder
+
+                    this.endRunner();
                     reject(error);
                 })
                 .on('end', message => {
                     runner.removeAllListeners();
-                    csvWriter.removeAllListeners();
-                    csvWriter.destroy();
                     logger.info(message);
+
+                    // TODO
+                    // Handel what we will do on succes
+                    // For example delete batch and results files
+
+                    this.endRunner();
                     resolve(message);
                 });
         });
@@ -63,7 +76,6 @@ export class Runner {
         try {
             options = this.prepareOptions(options);
             const retryOptions = config.runner.request.retries;
-            const throughput = options.throughput || config.runner.throughput;
 
             let total = 0;
             let requestsCount = 0;
@@ -71,23 +83,17 @@ export class Runner {
 
             monitor.updateTotal(options.batch_size);
 
-            const readStream: MapStream = createReadStream(options.batch_file)
+            this.readStream = createReadStream(options.batch_file)
                 .pipe(split())
                 .pipe(
                     mapSync((line: string) => {
                         if (!line) return;
-                        if (!columns) {
-                            columns = convertIntoArray(line);
-                            emitter.emit('columns', columns);
-                            readStream.pause();
-                            setImmediate(() => readStream.resume());
-                            return;
-                        }
+                        if (!columns) return columns = convertIntoArray(line);
 
                         ++requestsCount;
-                        if (requestsCount >= throughput) {
+                        if (requestsCount >= options.throughput!) {
                             requestsCount = 0;
-                            readStream.pause();
+                            this.readStream?.pause();
                         }
 
                         const order = ++total;
@@ -122,12 +128,8 @@ export class Runner {
                             );
                     })
                 )
-                .on('error', error => {
-                    emitter.emit('error', `Error while reading batch file: ${JSON.stringify(error)}`);
-                })
-                .on('end', () => {
-                    monitor.updateTotal(total);
-                });
+                .on('error', error => emitter.emit('error', `Error while reading batch file: ${JSON.stringify(error)}`))
+                .on('end', () => monitor.updateTotal(total, true));
 
             const interval = setInterval(() => {
                 monitor.updateProgress();
@@ -140,12 +142,11 @@ export class Runner {
                     // Implement how we will deal with the progress (queue, faild requests)
                     monitor.del();
 
-                    this.cancel();
-                    readStream.removeAllListeners();
+                    this.endRunner();
                     return clearInterval(interval);
                 }
 
-                readStream.resume();
+                this.readStream?.resume();
             }, 1000);
         } catch (error) {
             emitter.emit('error', `Error while reading the batch file: ${JSON.stringify(error)}`);
@@ -209,12 +210,17 @@ export class Runner {
         return url
             .split(':')
             .filter(v => !v.startsWith('/') && !['http', 'https'].includes(v))
-            .map(v => v.replace(/\//g, ''));
+            .map(v => v.replace(/\/.*/g, ''));
     }
 
-    cancel() {
-        this.progressCancel$.next();
-        this.progressCancel$.complete();
-        this.progressCancel$.unsubscribe();
+    endRunner() {
+        if (!this.progressCancel$.closed) {
+            this.progressCancel$.next();
+            this.progressCancel$.complete();
+            this.progressCancel$.unsubscribe();
+        }
+
+        this.csvWriter?.removeAllListeners().destroy();
+        this.readStream?.removeAllListeners().destroy();
     }
 }

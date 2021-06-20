@@ -10,6 +10,7 @@ export class Monitor {
         success: 0,
         faild: 0,
         inProgress: 0,
+        readingDone: false,
         time: 0
     };
 
@@ -26,8 +27,9 @@ export class Monitor {
         queue.set(this.requestId, { progress: this._progress });
     }
 
-    updateTotal(total: number) {
+    updateTotal(total: number, readingDone: boolean = false) {
         this._progress.total = total;
+        this._progress.readingDone = readingDone;
         queue.set(this.requestId, { progress: this._progress });
     }
 
@@ -40,7 +42,7 @@ export class Monitor {
     }
 
     isDone(): boolean {
-        return this._progress.total === this._progress.done;
+        return this._progress.readingDone && this._progress.total === this._progress.done;
     }
 
     toString(): string {
